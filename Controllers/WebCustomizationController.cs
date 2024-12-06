@@ -17,7 +17,6 @@ namespace KalakariWeb.Controllers
             _dbConnection = dbConnection;
         }
 
-        // Insert new customization record
         [HttpPost("Insert")]
         public async Task<IActionResult> InsertCustomization([FromBody] WebCustomization customizationDto)
         {
@@ -26,14 +25,15 @@ namespace KalakariWeb.Controllers
                 return BadRequest("Invalid input data.");
             }
 
-            // Updated SQL query to include new columns
+            // Updated SQL query to include SCOPE_IDENTITY()
             var insertQuery = @"
-        INSERT INTO Tbl_Web_Customization 
-        (UserEmail, Header, Topic, Author, Image, Content, Footer, InsertedOn, ModifiedOn, IsActive) 
-        VALUES (@UserEmail, @Header, @Topic, @Author, @Image, @Content, @Footer, GETDATE(), GETDATE(), @IsActive);
-    ";
+    INSERT INTO Tbl_Web_Customization 
+    (UserEmail, Header, Topic, Author, Image, Content, Footer, InsertedOn, ModifiedOn, IsActive) 
+    VALUES (@UserEmail, @Header, @Topic, @Author, @Image, @Content, @Footer, GETDATE(), GETDATE(), @IsActive);
+    SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
-            var result = await _dbConnection.Connection.ExecuteAsync(insertQuery, new
+            // Execute the query and retrieve the inserted ID
+            var newId = await _dbConnection.Connection.QuerySingleAsync<int>(insertQuery, new
             {
                 customizationDto.UserEmail,
                 customizationDto.Header,
@@ -45,7 +45,7 @@ namespace KalakariWeb.Controllers
                 IsActive = customizationDto.IsActive ?? true
             });
 
-            return Ok(new { Message = "Customization record inserted successfully.", AffectedRows = result });
+            return Ok(new { Message = "Customization record inserted successfully.", NewId = newId });
         }
 
         // Update an existing customization record
@@ -93,12 +93,15 @@ namespace KalakariWeb.Controllers
             }
 
             var selectQuery = @"
-                SELECT * FROM Tbl_Web_Customization WHERE UserEmail = @UserEmail AND IsActive = 1 ORDER BY 1 DESC;
+                SELECT TOP 1 * FROM Tbl_Web_Customization WHERE UserEmail = @UserEmail ORDER BY 1 DESC;
             ";
 
             var records = await _dbConnection.Connection.QueryAsync<WebCustomization>(selectQuery, new { UserEmail = userEmail });
-
-            return Ok(records);
+            if(records.Any())
+            {
+                return Ok(records.FirstOrDefault());
+            }
+            return Ok(null);
         }
     }
 }
