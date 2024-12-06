@@ -1,0 +1,6 @@
+@KalakariWeb_HostAddress = http://localhost:5293
+
+GET {{KalakariWeb_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
