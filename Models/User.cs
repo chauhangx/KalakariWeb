@@ -1,5 +1,6 @@
 ﻿namespace KalakariWeb.Models
 {
+    // Summary Added
     public class User
     {
         public int Id { get; set; }               // Integer Id
